@@ -5,7 +5,33 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
 canvas.style.background = "#a2a2a2";
-class board{
+class Board{
+    dots = [];
+    addDot = (arc)=>{
+        this.dots.push(arc);
+    }
+    findDot = (x,y)=>{
+        for (let key in this.dots){
+            if (this.dots[key].isSelected(x,y) ){
+                let ret
+                if (this.selectedDot && this.selectedDot.isSelected(x,y)){
+                     ret =  this.selectedDot;
+                }else{
+                     ret = this.dots[key];
+                }
+                this.selectedDot = ret;
+                return ret;
+            }
+            this.selectedDot = null;
+        }
+    };
+    redraw = () =>{
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        this.dots.forEach( (dot) =>{
+            dot.draw();
+        });
+    };
+    selectedDot = null;
 
 }
 class Arc  {
@@ -44,40 +70,48 @@ class Arc  {
         if (this.isSelected(x, y)) {
             this.coords.x = x;
             this.coords.y = y;
-            clearAll();
-            // this.draw();
-
+            board.redraw();
         }
         return this;
     }
+    buttons = {
+        draw:()=>{
+            let x = this.coords.x,
+                y = this.coords.y;
+            ctx.fillRect(x-this.radius*2,y-this.radius/2, this.radius, this.radius);
+            ctx.fillRect(x+this.radius,y-this.radius/2, this.radius, this.radius);
+
+        }
+    }
 };
 
-canvas.addEventListener("mousedown", function () {
-    isMouseDown = true;
+canvas.addEventListener("mousedown", function (e) {
+
+
+    isMouseDown = true;//board.findDot(x,y) ? true : false;
 });
 canvas.addEventListener("mouseup", function () {
     isMouseDown = false;
+    if (board.selectedDot) board.selectedDot.buttons.draw();
 });
 canvas.addEventListener("mousemove", function (e) {
     if (isMouseDown) {
         let x = e.clientX,
             y = e.clientY;
-        for (let key in objects){
-            objects[key].move(x,y);
-        }
+      let dot = board.findDot(x,y);
+      if (dot) dot.move(x,y);
+
+    console.log(board.selectedDot)
     }
 
 });
-let objects = [];
-objects.push(new Arc(100,100,20));
-objects.push(new Arc(200,200,20));
+let board = new Board();
+board.addDot(new Arc(100,100,40));
+board.addDot(new Arc(200,200,20));
 
 
 
 // clearthis(this.coords.x, this.coords.y, this.radius);
 function clearAll() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    objects.forEach( (value) =>{
-        value.draw();
-    })
+
 }
