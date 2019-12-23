@@ -5,6 +5,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
 canvas.style.background = "#a2a2a2";
+
 class Board{
     dots = [];
     addDot = (arc)=>{
@@ -46,8 +47,6 @@ class Arc  {
 
     isDrawed =  false;
     draw =  () => {
-
-
         ctx.beginPath();
         ctx.fillStyle = "white";
 
@@ -101,17 +100,11 @@ canvas.addEventListener("mousemove", function (e) {
       let dot = board.findDot(x,y);
       if (dot) dot.move(x,y);
 
-    console.log(board.selectedDot)
     }
 
 });
 let board = new Board();
-board.addDot(new Arc(100,100,40));
-board.addDot(new Arc(200,200,20));
+board.addDot(new Arc(100,100,30));
+board.addDot(new Arc(200,200,30));
+board.addDot(new Arc(400,400,30));
 
-
-
-// clearthis(this.coords.x, this.coords.y, this.radius);
-function clearAll() {
-
-}
