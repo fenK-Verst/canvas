@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="25917d49-92a1-4f6d-a75e-e6b5c503c5b2" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/main.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -51,6 +51,7 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
   </component>
   <component name="RunManager">
@@ -86,6 +87,8 @@
       <option name="presentableId" value="Default" />
       <updated>1577098509032</updated>
       <workItem from="1577098510512" duration="7348000" />
+      <workItem from="1577157133816" duration="7206000" />
+      <workItem from="1577242124821" duration="11400000" />
     </task>
     <servers />
   </component>
@@ -100,5 +103,13 @@
       <screen x="0" y="0" width="1920" height="1032" />
     </state>
     <state x="449" y="150" key="SettingsEditor/0.0.1920.1032@0.0.1920.1032" timestamp="1577100892598" />
+    <state x="456" y="195" key="run.anything.popup" timestamp="1577254816642">
+      <screen x="0" y="0" width="1600" height="860" />
+    </state>
+    <state x="456" y="195" key="run.anything.popup/0.0.1600.860@0.0.1600.860" timestamp="1577254816642" />
+    <state x="463" y="180" key="search.everywhere.popup" timestamp="1577159555237">
+      <screen x="0" y="0" width="1600" height="860" />
+    </state>
+    <state x="463" y="180" key="search.everywhere.popup/0.0.1600.860@0.0.1600.860" timestamp="1577159555237" />
   </component>
 </project>
