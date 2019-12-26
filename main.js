@@ -1,116 +1,98 @@
 let canvas = document.getElementById("canvas"),
     ctx = canvas.getContext("2d"),
-    isMouseDown = false;
+    isMouseDown = false,
+    isMouseMoved = false,
+    bgColor = "#a2a2a2",
+    width = 40;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
-canvas.style.background = "#a2a2a2";
+
+canvas.style.background = bgColor;
+
+ctx.fillStyle = "white";
 
 class Board {
-    dots = [];
-    selectedDot = null;
-    addDot = (arc) => {
-        this.dots.push(arc);
+    figures = [];
+    lastSelectedFigure;
+    isSelectedFigure = false;
+    addFigure = (figure) => {
+        this.figures.push(figure);
     };
-    findDot = (x, y) => {
-        for (let key in this.dots) {
-            // console.log(this.dots[key].isSelected(x, y));
-            if (this.dots[key].isSelected(x, y)) {
-                let ret;
-                if (this.selectedDot && this.selectedDot.isSelected(x, y)) {
-                    ret = this.selectedDot;
-                } else {
-                    ret = this.dots[key];
-                }
-                this.selectedDot = ret;
-                return ret;
+    findFigure = (x, y) => {
+        for (let key in this.figures) {
+            if (this.figures[key].isSelected(x, y)) {
+                this.lastSelectedFigure = this.figures[key];
+                return this.figures[key];
             }
-            this.selectedDot = null;
+
         }
     };
     redraw = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        this.dots.forEach((dot) => {
-            dot.draw();
+        this.isSelectedFigure = false;
+
+        this.figures.forEach((figure) => {
+            figure.draw();
+            figure.sections.isDrawed = false;
         });
+        ctx.fill();
     };
 
 
 }
 
-class Arc {
+class Figure {
+    sections = {};
+
     constructor(x, y, width) {
         this.width = width;
         this.coords = {
             x: x,
             y: y
         };
-        this.trees = {
+        ["left", "right", "top", "bot"].forEach(((value, index,) => {
+            this.sections[value] = new FigureElem(this, value);
+        }));
 
-            th: {
-                coords: [[x, y], [x + width / 2, y - width / 2], [x + width, y]]
-            },
-            bot: {
-                coords: [[x, y + width], [x + width / 2, y + width + width / 2], [x + width, y + width]]
-            },
-            left: {
-                coords: [[x, y], [x - width / 2, y + width / 2], [x, y + width]]
-            },
-            right: {
-                coords: [[x + width, y], [x + width + width / 2, y + width / 2], [x + width, y + width]]
-            }
-        };
+        this.isDrawed = false;
         this.draw();
+        Object.defineProperty(this.sections, "isDrawed", {
+            enumerable: false,
+            writable: true
+        });
 
     };
 
 
-    isDrawed = false;
     draw = () => {
         ctx.beginPath();
-        // ctx.fillStyle = "white";
-
-        for (let key in this.trees) {
-            ctx.moveTo(...this.trees[key].coords[0]);
-            ctx.lineTo(...this.trees[key].coords[1]);
-            ctx.lineTo(...this.trees[key].coords[2]);
-
-        }
-        ctx.arc(this.coords.x, this.coords.y, this.radius, 0, 360 * Math.PI / 180);
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "black";
+        ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
         ctx.fill();
-        ctx.closePath();
         ctx.stroke();
-        /*let x=this.coords.x,
-            y=this.coords.y;
-
-        ctx.moveTo(x, y);
-        ctx.lineTo(x+this.width/2, y-this.width/2);
-        ctx.lineTo(x+this.width, y);
-
-        ctx.moveTo(x, y);
-        ctx.lineTo(x-this.width/2, y+this.width/2);
-        ctx.lineTo(x, y+this.width);
-
-        x=this.coords.x+this.width;
-        y=this.coords.y+this.width;
-
-
-        ctx.moveTo(x, y);
-        ctx.lineTo(x-this.width/2, y+this.width/2);
-        ctx.lineTo(x-this.width, y);
-
-        ctx.moveTo(x, y);
-        ctx.lineTo(x+this.width/2, y-this.width/2);
-        ctx.lineTo(x, y-this.width);
-        */
-        ctx.fill();
         ctx.closePath();
-
         this.isDrawed = true;
     };
-    isSelected = (x, y) => {
+    drawSections = () => {
 
+        ctx.beginPath();
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "black";
+        for (let key in this.sections) {
+            this.sections[key].draw();
+        }
+        this.sections.isDrawed = true;
 
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+
+    };
+
+    getSelectedSection = (x, y) => {
+        let result = false;
         /*
         Математическая часть - векторное и псевдоскалярное произведения.
 Реализация - считаются произведения (1, 2, 3 - вершины треугольника, 0 - точка):
@@ -120,112 +102,229 @@ class Arc {
 Если они одинакового знака, то точка внутри треугольника, если что-то из этого - ноль, то точка лежит на стороне, иначе точка вне треугольника.
          */
 
+        for (let key in this.sections) {
+            let th = this.sections[key].coords;
 
-        for (let key in this.trees){
-            let th = this.trees[key].coords;
-            let obj = [
-                (th[0][0] - x) * (th[1][1] - th[0][1]) - (th[1][0] - th[0][0]) * (th[0][1] - y),
-                (th[1][0] - x) * (th[2][1] - th[1][1]) - (th[2][0] - th[1][0]) * (th[1][1] - y),
-                (th[2][0] - x) * (th[0][1] - th[2][1]) - (th[0][0] - th[2][0]) * (th[2][1] - y)
-            ];
-            console.log(!Math.sign(obj[0]) , !Math.sign(obj[1]) , !Math.sign(obj[2]));
-            console.log((!Math.sign(obj[0]) && !Math.sign(obj[1]) && !Math.sign(obj[2])) == false );
+            let a = (th[0].x - x) * (th[1].y - th[0].y) - (th[1].x - th[0].x) * (th[0].y - y),
+                b = (th[1].x - x) * (th[2].y - th[1].y) - (th[2].x - th[1].x) * (th[1].y - y),
+                c = (th[2].x - x) * (th[0].y - th[2].y) - (th[0].x - th[2].x) * (th[2].y - y);
+            //console.log((!Math.sign(obj[0]) && !Math.sign(obj[1]) && !Math.sign(obj[2])) == false);
+            a = Math.sign(a);
+            b = Math.sign(b);
+            c = Math.sign(c);
 
-            if (!Math.sign(obj[0]) && !Math.sign(obj[1]) && !Math.sign(obj[2])){
-                console.log(!Math.sign(obj[0]), !Math.sign(obj[1]) ,!Math.sign(obj[2]))
-                console.log(!Math.sign(obj[0]) == !Math.sign(obj[1]) == !Math.sign(obj[2]))
-                console.log(obj);
-                console.log(key);
-                return key;
+            if (a == b && a == b && a == c) {
+                result = key;
             }
-        };
-        return false;
+        }
+        return result;
 
+    };
+    isSelected = (x, y) => {
+        return (x >= this.coords.x && x <= this.coords.x + this.width && y >= this.coords.y && y <= this.coords.y + this.width);
 
-
-
-        //     if (this.isDrawed &&
-        //         x >= this.coords.x - this.radius
-        //         && x <= this.coords.x + this.radius
-        //         && y >= this.coords.y - this.radius
-        //         && y <= this.coords.y + this.radius) return true;
-        // return false;
     };
     move = (x, y) => {
-        if (this.isSelected(x, y)) {
-            this.coords.x = x;
-            this.coords.y = y;
-            board.redraw();
+        // if (this.getSelected(x, y)) {
+        this.coords.x = x;
+        this.coords.y = y;
+        for (let key in this.sections) {
+            this.sections[key].recount();
         }
+        board.redraw();
+        // }
         return this;
     };
+
     buttons = {
         draw: () => {
             let x = this.coords.x,
                 y = this.coords.y;
             ctx.fillRect(x - this.radius * 2, y - this.radius / 2, this.radius, this.radius);
             ctx.fillRect(x + this.radius, y - this.radius / 2, this.radius, this.radius);
-
         }
     };
-};
+}
+
+class FigureElem {
+    constructor(parent, type) {
+        this.type = type;
+        this.parent = parent;
+        this.isDrawed = false;
+        this.recount();
+
+    };
+
+    recount = () => {
+        let x = this.parent.coords.x,
+            y = this.parent.coords.y,
+            width = this.parent.width;
+
+        switch (this.type) {
+            case "top":
+                this.coords = [
+                    {
+                        x: x,
+                        y: y
+                    },
+                    {
+                        x: x + width / 2,
+                        y: y - width / 2
+                    },
+                    {
+                        x: x + width,
+                        y: y
+                    }
+                ];
+                break;
+            case  "bot":
+                this.coords = [
+                    {
+                        x: x,
+                        y: y + width
+                    },
+                    {
+                        x: x + width / 2,
+                        y: y + width + width / 2
+                    },
+                    {
+                        x: x + width,
+                        y: y + width
+                    }
+                ];
+                break;
+            case  "left":
+                this.coords = [
+                    {
+                        x: x,
+                        y: y
+                    },
+                    {
+                        x: x - width / 2,
+                        y: y + width / 2
+                    },
+                    {
+                        x: x,
+                        y: y + width
+                    }
+                ];
+                break;
+            case  "right":
+                this.coords = [
+                    {
+                        x: x + width,
+                        y: y
+                    },
+                    {
+                        x: x + width + width / 2,
+                        y: y + width / 2
+                    },
+                    {
+                        x: x + width,
+                        y: y + width
+                    }
+                ];
+                break;
+            default:
+                throw "Invalid type";
+        }
+    };
+    draw = () => {
+
+        ctx.moveTo(this.coords[0].x, this.coords[0].y);
+        ctx.lineTo(this.coords[1].x, this.coords[1].y);
+        ctx.lineTo(this.coords[2].x, this.coords[2].y);
+
+    };
+    drawColored = () =>{
+        ctx.beginPath();
+        ctx.fillStyle = "green";
+        this.draw();
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+        ctx.fillStyle=bgColor;
+    };
+
+}
 
 canvas.addEventListener("mousedown", function (e) {
-    isMouseDown = true;//board.findDot(x,y) ? true : false;
+    isMouseDown = true;
 });
 canvas.addEventListener("mouseup", function () {
     isMouseDown = false;
-    if (board.selectedDot) board.selectedDot.buttons.draw();
+    if (isMouseMoved) {
+        console.log("moved");
+    }
+    isMouseMoved = false;
+    // if (board.selectedDot) board.selectedDot.buttons.draw();
 });
+
 canvas.addEventListener("mousemove", function (e) {
     let x = e.clientX,
         y = e.clientY;
-    if (isMouseDown) {
 
-        let dot = board.findDot(x, y);
-        if (dot) dot.move(x, y);
+    if (isMouseDown) {
+        let figure = board.findFigure(x, y);
+        if (figure) {
+            figure.move(x - figure.width / 2, y - figure.width / 2);
+            isMouseMoved = true;
+        }
+    }else if (board.isSelectedFigure && board.lastSelectedFigure){
+        let key = board.lastSelectedFigure.getSelectedSection(x,y);
+        board.lastSelectedFigure.drawSections();
+        if (key){
+            board.lastSelectedFigure.sections[key].drawColored();
+        }
+    }
+
+});
+canvas.addEventListener("click", function (e) {
+let x = e.clientX,
+    y = e.clientY;
+    if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSelectedSection(x, y)) {
+        let selectedFigure = board.lastSelectedFigure;
+        let key = selectedFigure.getSelectedSection(x, y);
+        let figure;
+        console.log(selectedFigure.sections[key]);
+        switch (key) {
+            case "top": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y-width*3, width); break;
+            case "left": figure = new Figure(selectedFigure.coords.x-width*3, selectedFigure.coords.y, width); break;
+            case "right": figure = new Figure(selectedFigure.coords.x+width*3, selectedFigure.coords.y, width); break;
+            case "bot": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y+width*3, width); break;
+
+        }
+        board.addFigure(figure);
+
 
     }
 
-
 });
-// ctx.fillStyle = "green";
-let offset = 60;
-// ctx.arc(600, 200, 20, 0, 90*Math.PI/180, false);
-// ctx.fill();
+canvas.addEventListener("dblclick", function (e) {
+    let x = e.clientX,
+        y = e.clientY;
 
-// ctx.beginPath();
-// let context = ctx;
-// context.beginPath();
-// context.moveTo(40, 90);
-// context.arc(40, 90, 50, 1.25*Math.PI, 1.75*Math.PI, false);
-// context.closePath();
-// context.stroke();
-//
-// context.beginPath();
-// context.moveTo(150, 90);
-// context.arc(150, 90, 50, 1.75*Math.PI, 0.25*Math.PI, false);
-// context.closePath();
-// context.stroke();
-//
-// context.beginPath();
-// context.moveTo(240, 90);
-// context.arc(240, 90, 50, 0.25*Math.PI,  0.75*Math.PI, false);
-// context.closePath();
-// context.stroke();
-//
-// context.beginPath();
-// context.moveTo(380,90);
-// context.arc(380, 90, 50, 0.75*Math.PI, 1.25*Math.PI, false);
-// context.closePath();
-// context.stroke();
-// ctx.closePath();
 
+
+    let figure = board.findFigure(x, y);
+
+    if (figure && !figure.sections.isDrawed) {
+        board.redraw();
+        board.isSelectedFigure = true;
+        figure.drawSections();
+    }else{
+        board.redraw();
+    }
+});
+document.addEventListener("keydown", function (e) {
+    if (e.code == "Delete" && board.isSelectedFigure) {
+        board.figures.splice(board.figures.indexOf(board.lastSelectedFigure), 1);
+        board.redraw();
+    }
+});
 
 let board = new Board();
-board.addDot(new Arc(100, 100, 40));
-// board.addDot(new Arc(200, 200, 30));
-// board.addDot(new Arc(400, 400, 30));
+board.addFigure(new Figure(100, 100, width));
+board.addFigure(new Figure(400, 100, width));
 
 
-board.addDot(new Arc(500, 100, 40));

@@ -2,7 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="25917d49-92a1-4f6d-a75e-e6b5c503c5b2" name="Default Changelist" comment="">
+<<<<<<< HEAD
+      <change afterPath="$PROJECT_DIR$/test.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< HEAD
+=======
+      <change beforePath="$PROJECT_DIR$/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/main.js" afterDir="false" />
+>>>>>>> 702e03cb5cf6e35604ddc96d66cdb7498e0b38f5
+>>>>>>> b6988f7b79cdffeb6e4e6c0de16fbd7a3919f9bc
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -13,6 +22,9 @@
     <execution>
       <executable />
     </execution>
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="canvas" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -85,10 +97,20 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1577098509032</updated>
+<<<<<<< HEAD
+      <workItem from="1577098510512" duration="8512000" />
+      <workItem from="1577181215979" duration="20000" />
+      <workItem from="1577192983100" duration="1660000" />
+=======
       <workItem from="1577098510512" duration="7348000" />
       <workItem from="1577157133816" duration="7206000" />
+<<<<<<< HEAD
       <workItem from="1577242124821" duration="11438000" />
       <workItem from="1577329122546" duration="118000" />
+=======
+      <workItem from="1577242124821" duration="11400000" />
+>>>>>>> 702e03cb5cf6e35604ddc96d66cdb7498e0b38f5
+>>>>>>> b6988f7b79cdffeb6e4e6c0de16fbd7a3919f9bc
     </task>
     <servers />
   </component>
@@ -99,6 +121,10 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="743" y="273" width="424" height="484" key="FileChooserDialogImpl" timestamp="1577181232881">
+      <screen x="0" y="0" width="1920" height="1032" />
+    </state>
+    <state x="743" y="273" width="424" height="484" key="FileChooserDialogImpl/0.0.1920.1032@0.0.1920.1032" timestamp="1577181232881" />
     <state x="449" y="150" key="SettingsEditor" timestamp="1577100892598">
       <screen x="0" y="0" width="1920" height="1032" />
     </state>
