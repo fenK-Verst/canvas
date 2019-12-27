@@ -285,11 +285,15 @@ canvas.addEventListener("dblclick", function (e) {
 
 
     let figure = board.findFigure(x, y);
-    board.redraw();
+
     if (figure && !figure.sections.isDrawed) {
+        board.redraw();
         board.isSelectedFigure = true;
         figure.drawSections();
+    }else{
+        board.redraw();
     }
+
 });
 document.addEventListener("keydown", function (e) {
     if (e.code == "Delete" && board.isSelectedFigure) {
