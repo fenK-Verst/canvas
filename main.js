@@ -2,7 +2,8 @@ let canvas = document.getElementById("canvas"),
     ctx = canvas.getContext("2d"),
     isMouseDown = false,
     isMouseMoved = false,
-    bgColor = "#a2a2a2";
+    bgColor = "#a2a2a2",
+    width = 40;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
@@ -35,6 +36,7 @@ class Board {
             figure.draw();
             figure.sections.isDrawed = false;
         });
+        ctx.fill();
     };
 
 
@@ -68,9 +70,8 @@ class Figure {
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
         ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
-        ctx.stroke();
         ctx.fill();
-
+        ctx.stroke();
         ctx.closePath();
         this.isDrawed = true;
     };
@@ -134,13 +135,13 @@ class Figure {
         // }
         return this;
     };
+
     buttons = {
         draw: () => {
             let x = this.coords.x,
                 y = this.coords.y;
             ctx.fillRect(x - this.radius * 2, y - this.radius / 2, this.radius, this.radius);
             ctx.fillRect(x + this.radius, y - this.radius / 2, this.radius, this.radius);
-
         }
     };
 }
@@ -278,6 +279,27 @@ canvas.addEventListener("mousemove", function (e) {
     }
 
 });
+canvas.addEventListener("click", function (e) {
+let x = e.clientX,
+    y = e.clientY;
+    if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSelectedSection(x, y)) {
+        let selectedFigure = board.lastSelectedFigure;
+        let key = selectedFigure.getSelectedSection(x, y);
+        let figure;
+        console.log(selectedFigure.sections[key]);
+        switch (key) {
+            case "top": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y-width*3, width); break;
+            case "left": figure = new Figure(selectedFigure.coords.x-width*3, selectedFigure.coords.y, width); break;
+            case "right": figure = new Figure(selectedFigure.coords.x+width*3, selectedFigure.coords.y, width); break;
+            case "bot": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y+width*3, width); break;
+
+        }
+        board.addFigure(figure);
+
+
+    }
+
+});
 canvas.addEventListener("dblclick", function (e) {
     let x = e.clientX,
         y = e.clientY;
@@ -303,6 +325,7 @@ document.addEventListener("keydown", function (e) {
 });
 
 let board = new Board();
-board.addFigure(new Figure(100, 100, 40));
-board.addFigure(new Figure(400, 100, 40));
+board.addFigure(new Figure(100, 100, width));
+board.addFigure(new Figure(400, 100, width));
+
 
