@@ -30,26 +30,39 @@ class Board {
     };
     redraw = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+
         this.isSelectedFigure = false;
 
         this.figures.forEach((figure) => {
             figure.draw();
+            figure.drawRelations();
             figure.sections.isDrawed = false;
         });
+
         ctx.fill();
+        ctx.closePath();
     };
 
 
 }
 
+
 class Figure {
     sections = {};
+
 
     constructor(x, y, width) {
         this.width = width;
         this.coords = {
             x: x,
             y: y
+        };
+        this.relations = {
+            top: null,
+            bot: null,
+            left: null,
+            right: null
         };
         ["left", "right", "top", "bot"].forEach(((value, index,) => {
             this.sections[value] = new FigureElem(this, value);
@@ -90,16 +103,81 @@ class Figure {
         ctx.closePath();
 
     };
+    drawRelations = () => {
+        ctx.beginPath();
 
+        for (let key in this.relations) {
+
+
+            if (this.relations[key] && this.relations[key]) {
+                let start = {},
+                    end = {},
+                    figureA = this,
+                    figureB = this.relations[key];
+
+                switch (this.sections[key].type) {
+                    case "top":
+                        start.x = figureA.sections["top"].coords[1].x;
+                        start.y = figureA.sections["top"].coords[0].y;
+                        end.x = figureB.sections["bot"].coords[1].x;
+                        end.y = figureB.sections["bot"].coords[0].y;
+                        break;
+                    case "bot":
+                        start.x = figureA.sections["bot"].coords[1].x;
+                        start.y = figureA.sections["bot"].coords[0].y;
+                        end.x = figureB.sections["top"].coords[1].x;
+                        end.y = figureB.sections["top"].coords[0].y;
+                        break;
+                    case "left":
+                        start.x = figureA.sections["left"].coords[0].x;
+                        start.y = figureA.sections["left"].coords[1].y;
+                        end.x = figureB.sections["right"].coords[0].x;
+                        end.y = figureB.sections["right"].coords[1].y;
+                        break;
+                    case "right":
+                        start.x = figureA.sections["right"].coords[0].x;
+                        start.y = figureA.sections["right"].coords[1].y;
+                        end.x = figureB.sections["left"].coords[0].x;
+                        end.y = figureB.sections["left"].coords[1].y;
+                        break;
+
+                }
+                // this.relations[key] = start;
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+            }
+        }
+        ctx.stroke();
+
+        ctx.closePath();
+    };
+    removeRelations = () => {
+        for (let key in this.relations) {
+            if (this.relations[key]){
+                console.log(this.relations[key]);
+                let deleteKey;
+                switch (key) {
+                    case "top":deleteKey = "bot"; break;
+                    case "bot":deleteKey = "top"; break;
+                    case "left":deleteKey = "right"; break;
+                    case "right":deleteKey = "left"; break;
+
+                }
+                this.relations[key].relations[deleteKey] = null;
+            }
+            this.relations[key] = null;
+
+        }
+    };
     getSelectedSection = (x, y) => {
         let result = false;
         /*
         Математическая часть - векторное и псевдоскалярное произведения.
-Реализация - считаются произведения (1, 2, 3 - вершины треугольника, 0 - точка):
-(x1 - x0) * (y2 - y1) - (x2 - x1) * (y1 - y0)
-(x2 - x0) * (y3 - y2) - (x3 - x2) * (y2 - y0)
-(x3 - x0) * (y1 - y3) - (x1 - x3) * (y3 - y0)
-Если они одинакового знака, то точка внутри треугольника, если что-то из этого - ноль, то точка лежит на стороне, иначе точка вне треугольника.
+    Реализация - считаются произведения (1, 2, 3 - вершины треугольника, 0 - точка):
+    (x1 - x0) * (y2 - y1) - (x2 - x1) * (y1 - y0)
+    (x2 - x0) * (y3 - y2) - (x3 - x2) * (y2 - y0)
+    (x3 - x0) * (y1 - y3) - (x1 - x3) * (y3 - y0)
+    Если они одинакового знака, то точка внутри треугольника, если что-то из этого - ноль, то точка лежит на стороне, иначе точка вне треугольника.
          */
 
         for (let key in this.sections) {
@@ -147,6 +225,8 @@ class Figure {
 }
 
 class FigureElem {
+    relation = null;
+
     constructor(parent, type) {
         this.type = type;
         this.parent = parent;
@@ -236,15 +316,16 @@ class FigureElem {
         ctx.lineTo(this.coords[2].x, this.coords[2].y);
 
     };
-    drawColored = () =>{
+    drawColored = () => {
         ctx.beginPath();
         ctx.fillStyle = "green";
         this.draw();
         ctx.fill();
         ctx.stroke();
         ctx.closePath();
-        ctx.fillStyle=bgColor;
+        ctx.fillStyle = bgColor;
     };
+
 
 }
 
@@ -270,33 +351,58 @@ canvas.addEventListener("mousemove", function (e) {
             figure.move(x - figure.width / 2, y - figure.width / 2);
             isMouseMoved = true;
         }
-    }else if (board.isSelectedFigure && board.lastSelectedFigure){
-        let key = board.lastSelectedFigure.getSelectedSection(x,y);
+    } else if (board.isSelectedFigure && board.lastSelectedFigure) {
+        let key = board.lastSelectedFigure.getSelectedSection(x, y);
         board.lastSelectedFigure.drawSections();
-        if (key){
+        if (key) {
             board.lastSelectedFigure.sections[key].drawColored();
         }
     }
 
 });
 canvas.addEventListener("click", function (e) {
-let x = e.clientX,
-    y = e.clientY;
+    let x = e.clientX,
+        y = e.clientY;
     if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSelectedSection(x, y)) {
-        let selectedFigure = board.lastSelectedFigure;
-        let key = selectedFigure.getSelectedSection(x, y);
-        let figure;
-        console.log(selectedFigure.sections[key]);
-        switch (key) {
-            case "top": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y-width*3, width); break;
-            case "left": figure = new Figure(selectedFigure.coords.x-width*3, selectedFigure.coords.y, width); break;
-            case "right": figure = new Figure(selectedFigure.coords.x+width*3, selectedFigure.coords.y, width); break;
-            case "bot": figure = new Figure(selectedFigure.coords.x, selectedFigure.coords.y+width*3, width); break;
+        let selectedFigure = board.lastSelectedFigure,
+            relationFigureKey,
+            key = selectedFigure.getSelectedSection(x, y),
+            figureCoords = {
+                x, y
+            };
 
+        if (selectedFigure.relations[key] == null) {
+            switch (key) {
+                case "top":
+                    figureCoords.x = selectedFigure.coords.x;
+                    figureCoords.y = selectedFigure.coords.y - width * 3;
+                    relationFigureKey = "bot";
+                    break;
+                case "left":
+                    figureCoords.x = selectedFigure.coords.x - width * 3;
+                    figureCoords.y = selectedFigure.coords.y;
+                    relationFigureKey = "right";
+                    break;
+                case "right":
+                    figureCoords.x = selectedFigure.coords.x + width * 3;
+                    figureCoords.y = selectedFigure.coords.y;
+                    relationFigureKey = "left";
+                    break;
+                case "bot":
+                    figureCoords.x = selectedFigure.coords.x;
+                    figureCoords.y = selectedFigure.coords.y + width * 3;
+                    relationFigureKey = "top";
+                    break;
+
+            }
+            let figure = new Figure(figureCoords.x, figureCoords.y, width);
+            board.addFigure(figure);
+
+            selectedFigure.relations[key] = figure;
+            figure.relations[relationFigureKey] = selectedFigure;
+
+            figure.drawRelations();
         }
-        board.addFigure(figure);
-
-
     }
 
 });
@@ -304,28 +410,28 @@ canvas.addEventListener("dblclick", function (e) {
     let x = e.clientX,
         y = e.clientY;
 
-
-
     let figure = board.findFigure(x, y);
 
     if (figure && !figure.sections.isDrawed) {
         board.redraw();
         board.isSelectedFigure = true;
         figure.drawSections();
-    }else{
+    } else {
         board.redraw();
     }
 
 });
 document.addEventListener("keydown", function (e) {
     if (e.code == "Delete" && board.isSelectedFigure) {
-        board.figures.splice(board.figures.indexOf(board.lastSelectedFigure), 1);
+        let figure = board.lastSelectedFigure;
+        figure.removeRelations();
+        board.figures.splice(board.figures.indexOf(figure), 1);
         board.redraw();
     }
 });
 
 let board = new Board();
 board.addFigure(new Figure(100, 100, width));
-board.addFigure(new Figure(400, 100, width));
+// board.addFigure(new Figure(400, 100, width));
 
 
