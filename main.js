@@ -19,15 +19,16 @@ class Board {
     addFigure = (figure) => {
         this.figures.push(figure);
     };
+
     findFigure = (x, y) => {
-        for (let key in this.figures) {
+        for (let key in this.figures)
             if (this.figures[key].isSelected(x, y)) {
                 this.lastSelectedFigure = this.figures[key];
                 return this.figures[key];
             }
-
-        }
     };
+
+
     redraw = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
@@ -36,6 +37,12 @@ class Board {
 
         this.figures.forEach((figure) => {
             figure.draw();
+            for (let key in figure.sections){
+               if ( figure.sections[key]) {
+                   figure.sections[key].recount();
+
+               }
+            }
             figure.drawRelations();
             figure.sections.isDrawed = false;
         });
@@ -50,7 +57,8 @@ class Board {
 
 class Figure {
     sections = {};
-
+    relations = {};
+    lastSelectedSection;
 
     constructor(x, y, width) {
         this.width = width;
@@ -58,14 +66,10 @@ class Figure {
             x: x,
             y: y
         };
-        this.relations = {
-            top: null,
-            bot: null,
-            left: null,
-            right: null
-        };
+
         ["left", "right", "top", "bot"].forEach(((value, index,) => {
             this.sections[value] = new FigureElem(this, value);
+            this.relations[value] = null;
         }));
 
         this.isDrawed = false;
@@ -83,7 +87,6 @@ class Figure {
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
         ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
-        ctx.fill();
         ctx.stroke();
         ctx.closePath();
         this.isDrawed = true;
@@ -93,9 +96,10 @@ class Figure {
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
-        for (let key in this.sections) {
+        for (let key in this.sections)
             this.sections[key].draw();
-        }
+
+
         this.sections.isDrawed = true;
 
         ctx.fill();
@@ -107,7 +111,6 @@ class Figure {
         ctx.beginPath();
 
         for (let key in this.relations) {
-
 
             if (this.relations[key] && this.relations[key]) {
                 let start = {},
@@ -153,14 +156,21 @@ class Figure {
     };
     removeRelations = () => {
         for (let key in this.relations) {
-            if (this.relations[key]){
-                console.log(this.relations[key]);
+            if (this.relations[key]) {
                 let deleteKey;
                 switch (key) {
-                    case "top":deleteKey = "bot"; break;
-                    case "bot":deleteKey = "top"; break;
-                    case "left":deleteKey = "right"; break;
-                    case "right":deleteKey = "left"; break;
+                    case "top":
+                        deleteKey = "bot";
+                        break;
+                    case "bot":
+                        deleteKey = "top";
+                        break;
+                    case "left":
+                        deleteKey = "right";
+                        break;
+                    case "right":
+                        deleteKey = "left";
+                        break;
 
                 }
                 this.relations[key].relations[deleteKey] = null;
@@ -204,28 +214,21 @@ class Figure {
     };
     move = (x, y) => {
         // if (this.getSelected(x, y)) {
+
         this.coords.x = x;
         this.coords.y = y;
         for (let key in this.sections) {
             this.sections[key].recount();
         }
+
         board.redraw();
         // }
-        return this;
+
     };
 
-    buttons = {
-        draw: () => {
-            let x = this.coords.x,
-                y = this.coords.y;
-            ctx.fillRect(x - this.radius * 2, y - this.radius / 2, this.radius, this.radius);
-            ctx.fillRect(x + this.radius, y - this.radius / 2, this.radius, this.radius);
-        }
-    };
 }
 
 class FigureElem {
-    relation = null;
 
     constructor(parent, type) {
         this.type = type;
@@ -235,10 +238,9 @@ class FigureElem {
 
     };
 
-    recount = () => {
-        let x = this.parent.coords.x,
-            y = this.parent.coords.y,
-            width = this.parent.width;
+    recount = (x = this.parent.coords.x, y = this.parent.coords.y) => {
+
+        width = this.parent.width;
 
         switch (this.type) {
             case "top":
@@ -334,6 +336,7 @@ canvas.addEventListener("mousedown", function (e) {
 });
 canvas.addEventListener("mouseup", function () {
     isMouseDown = false;
+
     if (isMouseMoved) {
         console.log("moved");
     }
@@ -346,11 +349,41 @@ canvas.addEventListener("mousemove", function (e) {
         y = e.clientY;
 
     if (isMouseDown) {
-        let figure = board.findFigure(x, y);
+        let figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
+
         if (figure) {
             figure.move(x - figure.width / 2, y - figure.width / 2);
             isMouseMoved = true;
+
+        } else if (board.isSelectedFigure && board.lastSelectedFigure) {
+            let figure = board.lastSelectedFigure,
+                key = figure.getSelectedSection(x, y) || figure.lastSelectedSection;
+            figure.lastSelectedSection = key;
+            board.redraw();
+            board.isSelectedFigure = true;
+            switch (key) {
+                case "top":
+                    x -= width / 2;
+                    break;
+                case "bot":
+                    y -= width;
+                    x -= width / 2;
+                    break;
+                case "left":
+                    y -= width / 2;
+                    break;
+                case "right":
+                    y -= width / 2;
+                    x -= width;
+                    break;
+            }
+            figure.sections[key].recount(x, y);
+            figure.drawSections();
+
+
         }
+
+
     } else if (board.isSelectedFigure && board.lastSelectedFigure) {
         let key = board.lastSelectedFigure.getSelectedSection(x, y);
         board.lastSelectedFigure.drawSections();
@@ -395,13 +428,15 @@ canvas.addEventListener("click", function (e) {
                     break;
 
             }
-            let figure = new Figure(figureCoords.x, figureCoords.y, width);
-            board.addFigure(figure);
+            if (figureCoords.x >0 && figureCoords.y>0) {
+                let figure = new Figure(figureCoords.x, figureCoords.y, width);
+                board.addFigure(figure);
 
-            selectedFigure.relations[key] = figure;
-            figure.relations[relationFigureKey] = selectedFigure;
+                selectedFigure.relations[key] = figure;
+                figure.relations[relationFigureKey] = selectedFigure;
 
-            figure.drawRelations();
+                figure.drawRelations();
+            }
         }
     }
 
