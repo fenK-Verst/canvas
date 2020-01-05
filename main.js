@@ -16,19 +16,21 @@ class Board {
     figures = [];
     lastSelectedFigure;
     isSelectedFigure = false;
+    movedPart;
     addFigure = (figure) => {
+
         this.figures.push(figure);
+
     };
 
     findFigure = (x, y) => {
-        for (let key in this.figures)
-            if (this.figures[key].isSelected(x, y)) {
-                this.lastSelectedFigure = this.figures[key];
-                return this.figures[key];
-            }
+        let value = false;
+        this.figures.forEach(figure =>{
+            if (figure.isSelected(x, y)) value = figure;
+        });
+
+        return value;
     };
-
-
     redraw = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
@@ -37,11 +39,11 @@ class Board {
 
         this.figures.forEach((figure) => {
             figure.draw();
-            for (let key in figure.sections){
-               if ( figure.sections[key]) {
-                   figure.sections[key].recount();
+            for (let key in figure.sections) {
+                if (figure.sections[key]) {
+                    figure.sections[key].recount();
 
-               }
+                }
             }
             figure.drawRelations();
             figure.sections.isDrawed = false;
@@ -50,7 +52,35 @@ class Board {
         ctx.fill();
         ctx.closePath();
     };
+    moveSelectedFigureSection = (x, y) => {
+        let figure = this.lastSelectedFigure,
+            key = this.movedPart == "section" ? figure.lastSelectedSection : figure.getSection(x, y);
+        figure.lastSelectedSection = key;
+        this.redraw();
+        this.isSelectedFigure = true;
 
+        if (key) {
+            switch (key) {
+                case "top":
+                    x -= width / 2;
+                    break;
+                case "bot":
+                    y -= width;
+                    x -= width / 2;
+                    break;
+                case "left":
+                    y -= width / 2;
+                    break;
+                case "right":
+                    y -= width / 2;
+                    x -= width;
+                    break;
+            }
+            figure.sections[key].recount(x, y);
+            figure.drawSections();
+
+        }
+    }
 
 }
 
@@ -67,10 +97,10 @@ class Figure {
             y: y
         };
 
-        ["left", "right", "top", "bot"].forEach(((value, index,) => {
+        ["left", "right", "top", "bot"].forEach(value => {
             this.sections[value] = new FigureElem(this, value);
             this.relations[value] = null;
-        }));
+        });
 
         this.isDrawed = false;
         this.draw();
@@ -96,9 +126,10 @@ class Figure {
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
-        for (let key in this.sections)
-            this.sections[key].draw();
-
+        for (let key in this.sections){
+            let section = this.sections[key];
+            section.draw();
+        }
 
         this.sections.isDrawed = true;
 
@@ -179,7 +210,7 @@ class Figure {
 
         }
     };
-    getSelectedSection = (x, y) => {
+    getSection = (x, y) => {
         let result = false;
         /*
         Математическая часть - векторное и псевдоскалярное произведения.
@@ -333,10 +364,24 @@ class FigureElem {
 
 canvas.addEventListener("mousedown", function (e) {
     isMouseDown = true;
-});
-canvas.addEventListener("mouseup", function () {
-    isMouseDown = false;
 
+});
+canvas.addEventListener("mouseup", function (e) {
+    let x = e.clientX,
+        y = e.clientY;
+    isMouseDown = false;
+    if (board.movedPart == "section") {
+
+        board.figures.forEach(figure => {
+            if (figure.getSection(x, y)) {
+                board.lastSelectedFigure.relations[figure.getSection(x, y)] = figure;
+
+            }
+        });
+        board.redraw();
+    }
+
+    board.movedPart = null;
     if (isMouseMoved) {
         console.log("moved");
     }
@@ -346,46 +391,36 @@ canvas.addEventListener("mouseup", function () {
 
 canvas.addEventListener("mousemove", function (e) {
     let x = e.clientX,
-        y = e.clientY;
-
+        y = e.clientY,
+        figure;
     if (isMouseDown) {
-        let figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
 
-        if (figure) {
+        if (isMouseMoved) {
+            figure = board.lastSelectedFigure;
+        } else {
+            figure = board.findFigure(x, y);
+
+        }
+
+        if (figure && board.movedPart != "section") {
+            board.lastSelectedFigure = figure;
             figure.move(x - figure.width / 2, y - figure.width / 2);
+            board.movedPart = "figure";
             isMouseMoved = true;
 
         } else if (board.isSelectedFigure && board.lastSelectedFigure) {
-            let figure = board.lastSelectedFigure,
-                key = figure.getSelectedSection(x, y) || figure.lastSelectedSection;
-            figure.lastSelectedSection = key;
-            board.redraw();
-            board.isSelectedFigure = true;
-            switch (key) {
-                case "top":
-                    x -= width / 2;
-                    break;
-                case "bot":
-                    y -= width;
-                    x -= width / 2;
-                    break;
-                case "left":
-                    y -= width / 2;
-                    break;
-                case "right":
-                    y -= width / 2;
-                    x -= width;
-                    break;
-            }
-            figure.sections[key].recount(x, y);
-            figure.drawSections();
+            // board.lastSelectedFigure.lastSelectedSection.move(x,y);
+            board.moveSelectedFigureSection(x, y);
+            this.movedPart = "section";
 
 
+        } else {
+            board.movedPart = null;
         }
 
 
     } else if (board.isSelectedFigure && board.lastSelectedFigure) {
-        let key = board.lastSelectedFigure.getSelectedSection(x, y);
+        let key = board.lastSelectedFigure.getSection(x, y);
         board.lastSelectedFigure.drawSections();
         if (key) {
             board.lastSelectedFigure.sections[key].drawColored();
@@ -396,10 +431,10 @@ canvas.addEventListener("mousemove", function (e) {
 canvas.addEventListener("click", function (e) {
     let x = e.clientX,
         y = e.clientY;
-    if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSelectedSection(x, y)) {
+    if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSection(x, y)) {
         let selectedFigure = board.lastSelectedFigure,
             relationFigureKey,
-            key = selectedFigure.getSelectedSection(x, y),
+            key = selectedFigure.getSection(x, y),
             figureCoords = {
                 x, y
             };
@@ -428,7 +463,7 @@ canvas.addEventListener("click", function (e) {
                     break;
 
             }
-            if (figureCoords.x >0 && figureCoords.y>0) {
+            if (figureCoords.x > 0 && figureCoords.y > 0) {
                 let figure = new Figure(figureCoords.x, figureCoords.y, width);
                 board.addFigure(figure);
 
@@ -436,6 +471,11 @@ canvas.addEventListener("click", function (e) {
                 figure.relations[relationFigureKey] = selectedFigure;
 
                 figure.drawRelations();
+                board.redraw();
+                board.lastSelectedFigure = figure;
+                board.isSelectedFigure = true;
+                figure.drawSections();
+
             }
         }
     }
@@ -451,13 +491,15 @@ canvas.addEventListener("dblclick", function (e) {
         board.redraw();
         board.isSelectedFigure = true;
         figure.drawSections();
+        board.lastSelectedFigure = figure;
+        board.isSelectedFigure = true;
     } else {
         board.redraw();
     }
 
 });
 document.addEventListener("keydown", function (e) {
-    if (e.code == "Delete" && board.isSelectedFigure) {
+    if (e.keyCode === 46 && board.isSelectedFigure) {
         let figure = board.lastSelectedFigure;
         figure.removeRelations();
         board.figures.splice(board.figures.indexOf(figure), 1);
@@ -466,7 +508,7 @@ document.addEventListener("keydown", function (e) {
 });
 
 let board = new Board();
-board.addFigure(new Figure(100, 100, width));
+board.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
 // board.addFigure(new Figure(400, 100, width));
 
 
