@@ -17,11 +17,9 @@ class Board {
     lastSelectedFigure;
     isSelectedFigure = false;
     movedPart;
-
+    relations = [];
     addFigure = (figure) => {
-
         this.figures.push(figure);
-
     };
 
     findFigure = (x, y) => {
@@ -39,17 +37,18 @@ class Board {
         this.isSelectedFigure = false;
 
         this.figures.forEach((figure) => {
-            figure.draw();
+
             for (let key in figure.sections) {
                 if (figure.sections[key]) {
                     figure.sections[key].recount();
 
                 }
             }
-            figure.drawRelations();
+            figure.draw();
+            // figure.drawRelations();
             figure.sections.isDrawed = false;
         });
-
+        this.drawRelations();
         ctx.fill();
         ctx.closePath();
     };
@@ -83,7 +82,56 @@ class Board {
             // figure.sections[key].drawColored();
 
         }
-    }
+    };
+    drawRelations = () => {
+        ctx.beginPath();
+        this.relations.forEach(relation => {
+            let figure,
+                coords = [];
+
+            relation.forEach((value, i) => {
+                figure = value.figure;
+                coords[i] = {};
+                switch (value.section) {
+                    case "top":
+                        coords[i].x = figure.sections["top"].coords[1].x;
+                        coords[i].y = figure.sections["top"].coords[0].y;
+                        break;
+                    case "bot":
+                        coords[i].x = figure.sections["bot"].coords[1].x;
+                        coords[i].y = figure.sections["bot"].coords[0].y;
+                        break;
+                    case "left":
+                        coords[i].x = figure.sections["left"].coords[0].x;
+                        coords[i].y = figure.sections["left"].coords[1].y;
+                        break;
+                    case "right":
+                        coords[i].x = figure.sections["right"].coords[0].x;
+                        coords[i].y = figure.sections["right"].coords[1].y;
+                        break;
+
+                }
+            });
+            ctx.moveTo(coords[0].x, coords[0].y);
+            ctx.lineTo(coords[1].x, coords[1].y);
+        });
+        ctx.stroke();
+
+        ctx.closePath();
+    };
+    removeRelations = (figure) => {
+        this.relations = this.relations.filter((relation, index) => {
+            if (relation[0].figure == figure || relation[1].figure == figure) {
+                relation[0].figure.relations[relation[0].section] = null;
+                relation[1].figure.relations[relation[1].section] = null;
+            } else {
+
+                return relation;
+            }
+
+
+        });
+    };
 
 }
 
@@ -141,78 +189,7 @@ class Figure {
         ctx.closePath();
 
     };
-    drawRelations = () => {
-        ctx.beginPath();
 
-        for (let key in this.relations) {
-
-            if (this.relations[key]) {
-                let start = {},
-                    end = {},
-                    figureA = this,
-                    figureB = this.relations[key];
-
-                switch (this.sections[key].type) {
-                    case "top":
-                        start.x = figureA.sections["top"].coords[1].x;
-                        start.y = figureA.sections["top"].coords[0].y;
-                        end.x = figureB.sections["bot"].coords[1].x;
-                        end.y = figureB.sections["bot"].coords[0].y;
-                        break;
-                    case "bot":
-                        start.x = figureA.sections["bot"].coords[1].x;
-                        start.y = figureA.sections["bot"].coords[0].y;
-                        end.x = figureB.sections["top"].coords[1].x;
-                        end.y = figureB.sections["top"].coords[0].y;
-                        break;
-                    case "left":
-                        start.x = figureA.sections["left"].coords[0].x;
-                        start.y = figureA.sections["left"].coords[1].y;
-                        end.x = figureB.sections["right"].coords[0].x;
-                        end.y = figureB.sections["right"].coords[1].y;
-                        break;
-                    case "right":
-                        start.x = figureA.sections["right"].coords[0].x;
-                        start.y = figureA.sections["right"].coords[1].y;
-                        end.x = figureB.sections["left"].coords[0].x;
-                        end.y = figureB.sections["left"].coords[1].y;
-                        break;
-
-                }
-                // this.relations[key] = start;
-                ctx.moveTo(start.x, start.y);
-                ctx.lineTo(end.x, end.y);
-            }
-        }
-        ctx.stroke();
-
-        ctx.closePath();
-    };
-    removeRelations = () => {
-        for (let key in this.relations) {
-            if (this.relations[key]) {
-                let deleteKey;
-                switch (key) {
-                    case "top":
-                        deleteKey = "bot";
-                        break;
-                    case "bot":
-                        deleteKey = "top";
-                        break;
-                    case "left":
-                        deleteKey = "right";
-                        break;
-                    case "right":
-                        deleteKey = "left";
-                        break;
-
-                }
-                this.relations[key].relations[deleteKey] = null;
-            }
-            this.relations[key] = null;
-
-        }
-    };
     getSection = (x, y) => {
         let result = false;
         /*
@@ -379,8 +356,20 @@ canvas.addEventListener("mouseup", function (e) {
             if (figure.getSection(x, y)) {
                 // board.lastSelectedFigure.relations[figure.getSection(x, y)] = figure;
                 // figure.relations[figure.getSection(x, y)] = board.lastSelectedFigure;
-                console.log(board.lastSelectedFigure.relations, board.lastSelectedFigure.lastSelectedSection, figure);
-                board.lastSelectedFigure.relations[board.lastSelectedFigure.lastSelectedSection] = figure;
+                // console.log(board.lastSelectedFigure.relations, board.lastSelectedFigure.lastSelectedSection, figure);
+                // board.lastSelectedFigure.relations[board.lastSelectedFigure.lastSelectedSection] = figure;
+                let relation = [
+                    {
+                        figure:figure,
+                        section:figure.getSection(x, y)
+
+                    },
+                    {
+                        figure:board.lastSelectedFigure,
+                        section: board.lastSelectedFigure.lastSelectedSection
+                    }
+                ];
+                board.relations.push(relation); 
             }
         });
         board.redraw();
@@ -472,11 +461,22 @@ canvas.addEventListener("click", function (e) {
                 let figure = new Figure(figureCoords.x, figureCoords.y, width);
                 board.addFigure(figure);
 
-                selectedFigure.relations[key] = figure;
-                figure.relations[relationFigureKey] = selectedFigure;
+                selectedFigure.relations[key] = true;
+                figure.relations[relationFigureKey] = true;
+                board.relations.push([
+                    {
+                        figure: figure,
+                        section: relationFigureKey
+                    },
+                    {
+                        figure: selectedFigure,
+                        section: key
+                    }
 
-                figure.drawRelations();
+                ]);
+
                 board.redraw();
+                board.drawRelations();
                 board.lastSelectedFigure = figure;
                 board.isSelectedFigure = true;
                 figure.drawSections();
@@ -506,7 +506,7 @@ canvas.addEventListener("dblclick", function (e) {
 document.addEventListener("keydown", function (e) {
     if (e.keyCode === 46 && board.isSelectedFigure) {
         let figure = board.lastSelectedFigure;
-        figure.removeRelations();
+        board.removeRelations(figure);
         board.figures.splice(board.figures.indexOf(figure), 1);
         board.redraw();
     }
