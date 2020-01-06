@@ -17,6 +17,7 @@ class Board {
     lastSelectedFigure;
     isSelectedFigure = false;
     movedPart;
+
     addFigure = (figure) => {
 
         this.figures.push(figure);
@@ -25,7 +26,7 @@ class Board {
 
     findFigure = (x, y) => {
         let value = false;
-        this.figures.forEach(figure =>{
+        this.figures.forEach(figure => {
             if (figure.isSelected(x, y)) value = figure;
         });
 
@@ -55,11 +56,11 @@ class Board {
     moveSelectedFigureSection = (x, y) => {
         let figure = this.lastSelectedFigure,
             key = this.movedPart == "section" ? figure.lastSelectedSection : figure.getSection(x, y);
-        figure.lastSelectedSection = key;
-        this.redraw();
-        this.isSelectedFigure = true;
-
+        console.log(this.movedPart);
         if (key) {
+            figure.lastSelectedSection = key;
+            this.redraw();
+            this.isSelectedFigure = true;
             switch (key) {
                 case "top":
                     x -= width / 2;
@@ -76,8 +77,10 @@ class Board {
                     x -= width;
                     break;
             }
+
             figure.sections[key].recount(x, y);
             figure.drawSections();
+            // figure.sections[key].drawColored();
 
         }
     }
@@ -126,7 +129,7 @@ class Figure {
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
-        for (let key in this.sections){
+        for (let key in this.sections) {
             let section = this.sections[key];
             section.draw();
         }
@@ -143,7 +146,7 @@ class Figure {
 
         for (let key in this.relations) {
 
-            if (this.relations[key] && this.relations[key]) {
+            if (this.relations[key]) {
                 let start = {},
                     end = {},
                     figureA = this,
@@ -374,8 +377,10 @@ canvas.addEventListener("mouseup", function (e) {
 
         board.figures.forEach(figure => {
             if (figure.getSection(x, y)) {
-                board.lastSelectedFigure.relations[figure.getSection(x, y)] = figure;
-
+                // board.lastSelectedFigure.relations[figure.getSection(x, y)] = figure;
+                // figure.relations[figure.getSection(x, y)] = board.lastSelectedFigure;
+                console.log(board.lastSelectedFigure.relations, board.lastSelectedFigure.lastSelectedSection, figure);
+                board.lastSelectedFigure.relations[board.lastSelectedFigure.lastSelectedSection] = figure;
             }
         });
         board.redraw();
@@ -411,7 +416,7 @@ canvas.addEventListener("mousemove", function (e) {
         } else if (board.isSelectedFigure && board.lastSelectedFigure) {
             // board.lastSelectedFigure.lastSelectedSection.move(x,y);
             board.moveSelectedFigureSection(x, y);
-            this.movedPart = "section";
+            board.movedPart = "section";
 
 
         } else {
