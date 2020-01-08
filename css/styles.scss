@@ -1,3 +1,17 @@
 body{
   margin: 0;
+  #edit{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    height: auto;
+    display: none;
+  }
+  .buttons{
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
 }

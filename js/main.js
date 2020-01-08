@@ -1,9 +1,11 @@
+// $(document).on("ready", function () {
 let canvas = document.getElementById("canvas"),
     ctx = canvas.getContext("2d"),
     isMouseDown = false,
     isMouseMoved = false,
     bgColor = "#a2a2a2",
-    width = 40;
+    width = 40,
+    mode = "edit";
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
@@ -18,8 +20,12 @@ class Board {
     isSelectedFigure = false;
     movedPart;
     relations = [];
-    addFigure = (figure) => {
+    isDrawed = true;
+    addFigure = (figure, select = false) => {
         this.figures.push(figure);
+        if (select) {
+            this.selectFigure(figure);
+        }
     };
     deleteFigure = (figure = board.lastSelectedFigure) => {
         this.removeRelations(figure);
@@ -34,8 +40,20 @@ class Board {
 
         return value;
     };
-    redraw = () => {
+    selectFigure = (figure) => {
+        this.redraw();
+        this.drawRelations();
+        this.lastSelectedFigure = figure;
+        this.isSelectedFigure = true;
+        figure.drawSections();
+        figure.drawButtons();
+    };
+    clear = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        this.isDrawed = false;
+    };
+    redraw = () => {
+        this.clear();
         ctx.beginPath();
 
         this.isSelectedFigure = false;
@@ -52,6 +70,7 @@ class Board {
             figure.sections.isDrawed = false;
         });
         this.drawRelations();
+        this.isDrawed = true;
         ctx.fill();
         ctx.closePath();
     };
@@ -134,12 +153,26 @@ class Board {
 
         });
     };
+    isCanDraw = (x, y) => {
+        let result = x > 0 && y > 0 && x < canvas.width - width && y < canvas.height - width;
+        this.figures.forEach(figure => {
+            if (figure.isSelected(x, y)) result = false;
+        });
+
+        return result;
+    };
 
 }
+
 class Figure {
     sections = {};
     relations = {};
+    buttons = {};
     lastSelectedSection;
+    title;
+    text;
+    width = 0;
+    coords = {};
 
     constructor(x, y, width) {
         this.width = width;
@@ -147,12 +180,13 @@ class Figure {
             x: x,
             y: y
         };
-
         ["left", "right", "top", "bot"].forEach(value => {
             this.sections[value] = new Section(this, value);
             this.relations[value] = null;
         });
-
+        ["edit", "delete"].forEach(value => {
+            this.buttons[value] = new Button(this, value);
+        });
         this.isDrawed = false;
         this.draw();
         Object.defineProperty(this.sections, "isDrawed", {
@@ -162,12 +196,12 @@ class Figure {
 
     };
 
-
     draw = () => {
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.strokeStyle = "black";
         ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
+
         ctx.stroke();
         ctx.closePath();
         this.isDrawed = true;
@@ -189,7 +223,11 @@ class Figure {
         ctx.closePath();
 
     };
-
+    drawButtons = () => {
+        for (let key in this.buttons) {
+            this.buttons[key].draw();
+        }
+    };
     getSection = (x, y) => {
         let result = false;
         /*
@@ -219,25 +257,30 @@ class Figure {
         return result;
 
     };
+    getButton = (x, y) => {
+        for (let key in this.buttons) {
+            let button = this.buttons[key];
+            if (button.isSelected(x, y)) {
+                return button;
+            }
+        }
+        return false;
+    };
     isSelected = (x, y) => {
         return (x >= this.coords.x && x <= this.coords.x + this.width && y >= this.coords.y && y <= this.coords.y + this.width);
 
     };
     move = (x, y) => {
-        // if (this.getSelected(x, y)) {
-
         this.coords.x = x;
         this.coords.y = y;
         for (let key in this.sections) {
             this.sections[key].recount();
         }
-
         board.redraw();
-        // }
-
     };
 
 }
+
 class Section {
 
     constructor(parent, type) {
@@ -341,8 +384,103 @@ class Section {
 
 }
 
+class Button {
+    coords = {};
+    type = '';
+    parent = Figure;
+    width = 0;
+
+    constructor(parent, type) {
+        this.parent = parent;
+        this.type = type;
+        this.width = parent.width / 3;
+        this.recount();
+    };
+
+    draw = () => {
+        this.recount();
+        ctx.beginPath();
+        ctx.fillStyle = "red";
+        ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.fillText(this.type[0], this.coords.x + this.width / 2, this.coords.y + this.width - 5, width * 2);
+        ctx.closePath();
+    };
+    recount = () => {
+        switch (this.type) {
+            case "edit":
+                this.coords.x = this.parent.coords.x + this.parent.width;
+                this.coords.y = this.parent.coords.y + this.parent.width;
+                break;
+            case "delete":
+                this.coords.x = this.parent.coords.x - this.width;
+                this.coords.y = this.parent.coords.y + this.parent.width;
+                break;
+            default:
+                throw "Invalid type";
+        }
+    };
+    click = () => {
+        switch (this.type) {
+            case "edit":
+                let $edit = $("#edit"),
+                    $title = $('#title'),
+                    $text = $('#text'),
+                    parent = this.parent;
+
+                // if ($edit.data("init")) {
+                //     $title.froalaEditor('destroy');
+                //     $text.froalaEditor('destroy');
+                //     $edit.data("init", 0);
+                //     board.redraw();
+                $title.html(parent.title);
+                $text.html(parent.text);
+
+                $title.froalaEditor();
+                $text.froalaEditor();
+
+                $title.on(`froalaEditor.contentChanged`, function(e){
+                   parent.title = $(this).find('.fr-view').html();
+                });
+                $text.on(`froalaEditor.contentChanged`, function(e){
+                    parent.text = $(this).find('.fr-view').html();
+                });
+                // $edit.data("init", 1);
+                // $edit.data("id", board.figures.indexOf(this.parent));
+                $edit.show();
+                $(`#closebtn`).click(() => {
+                    $title.froalaEditor('destroy');
+                    $text.froalaEditor('destroy');
+                    $edit.hide();
+                    board.redraw();
+                });
+
+
+
+                // }
+                // } else {
+                board.clear();
+
+
+                break;
+            case "delete":
+                board.deleteFigure(this.parent);
+                break;
+            default:
+                throw "Invalid type";
+        }
+    };
+    isSelected = (x, y) => {
+        return (x >= this.coords.x && x <= this.coords.x + this.width && y >= this.coords.y && y <= this.coords.y + this.width);
+    }
+
+}
+
 let board = new Board();
 board.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
+
+
 // board.addFigure(new Figure(400, 100, width));
 
 canvas.addEventListener("mousedown", function (e) {
@@ -387,84 +525,75 @@ canvas.addEventListener("mousemove", function (e) {
     let x = e.clientX,
         y = e.clientY,
         figure;
-    if (isMouseDown) {
+    if (board.isDrawed) {
 
-        figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
+        if (isMouseDown) {
 
-        if (figure && board.movedPart != "section") {
-            board.lastSelectedFigure = figure;
-            figure.move(x - figure.width / 2, y - figure.width / 2);
-            board.movedPart = "figure";
-            isMouseMoved = true;
+            figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
 
-        } else if (board.isSelectedFigure && board.lastSelectedFigure && e.shiftKey) {
-            // board.lastSelectedFigure.lastSelectedSection.move(x,y);
-            board.moveSelectedFigureSection(x, y);
-            board.movedPart = "section";
+            if (figure && board.movedPart != "section") {
+                board.lastSelectedFigure = figure;
+                figure.move(x - figure.width / 2, y - figure.width / 2);
+                board.movedPart = "figure";
+                isMouseMoved = true;
 
-        } else {
-            board.movedPart = null;
-        }
+            } else if (board.isSelectedFigure && board.lastSelectedFigure && e.shiftKey) {
+                // board.lastSelectedFigure.lastSelectedSection.move(x,y);
+                board.moveSelectedFigureSection(x, y);
+                board.movedPart = "section";
+
+            } else {
+                board.movedPart = null;
+            }
 
 
-    } else if (board.isSelectedFigure && board.lastSelectedFigure) {
-        let section = board.lastSelectedFigure.getSection(x, y);
-        board.lastSelectedFigure.drawSections();
-        if (section) {
-            board.lastSelectedFigure.sections[section].drawColored();
+        } else if (board.isSelectedFigure && board.lastSelectedFigure) {
+            let section = board.lastSelectedFigure.getSection(x, y);
+            board.lastSelectedFigure.drawSections();
+            if (section) {
+                board.lastSelectedFigure.sections[section].drawColored();
+            }
         }
     }
-
 });
 canvas.addEventListener("click", function (e) {
     let x = e.clientX,
         y = e.clientY;
-    if (board.isSelectedFigure && board.lastSelectedFigure && board.lastSelectedFigure.getSection(x, y)) {
-        let selectedFigure = board.lastSelectedFigure,
-            relationFigureKey,
-            key = selectedFigure.getSection(x, y),
-            figureCoords = {
-                x, y
-            };
+    if (board.isDrawed) {
+    if (board.isSelectedFigure && board.lastSelectedFigure) {
+        let selectedFigure = board.lastSelectedFigure;
+        if (selectedFigure.getSection(x, y)) {
+            let relationFigureKey,
+                key = selectedFigure.getSection(x, y),
+                figureCoords = {
+                    x, y
+                };
+            if (selectedFigure.relations[key] == null) {
+                switch (key) {
+                    case "top":
+                        figureCoords.x = selectedFigure.coords.x;
+                        figureCoords.y = selectedFigure.coords.y - width * 3;
+                        relationFigureKey = "bot";
+                        break;
+                    case "left":
+                        figureCoords.x = selectedFigure.coords.x - width * 3;
+                        figureCoords.y = selectedFigure.coords.y;
+                        relationFigureKey = "right";
+                        break;
+                    case "right":
+                        figureCoords.x = selectedFigure.coords.x + width * 3;
+                        figureCoords.y = selectedFigure.coords.y;
+                        relationFigureKey = "left";
+                        break;
+                    case "bot":
+                        figureCoords.x = selectedFigure.coords.x;
+                        figureCoords.y = selectedFigure.coords.y + width * 3;
+                        relationFigureKey = "top";
+                        break;
 
-        if (selectedFigure.relations[key] == null) {
-            switch (key) {
-                case "top":
-                    figureCoords.x = selectedFigure.coords.x;
-                    figureCoords.y = selectedFigure.coords.y - width * 3;
-                    relationFigureKey = "bot";
-                    break;
-                case "left":
-                    figureCoords.x = selectedFigure.coords.x - width * 3;
-                    figureCoords.y = selectedFigure.coords.y;
-                    relationFigureKey = "right";
-                    break;
-                case "right":
-                    figureCoords.x = selectedFigure.coords.x + width * 3;
-                    figureCoords.y = selectedFigure.coords.y;
-                    relationFigureKey = "left";
-                    break;
-                case "bot":
-                    figureCoords.x = selectedFigure.coords.x;
-                    figureCoords.y = selectedFigure.coords.y + width * 3;
-                    relationFigureKey = "top";
-                    break;
-
-            }
-            if (figureCoords.x > 0 &&
-                figureCoords.y > 0 &&
-                figureCoords.x < canvas.width - width &&
-                figureCoords.y < canvas.height - width
-
-            ) {
-                let may = true;
-                board.figures.forEach(figure => {
-                    if (figure.isSelected(figureCoords.x, figureCoords.y)) may = false;
-                });
-
-                if (may) {
+                }
+                if (board.isCanDraw(figureCoords.x, figureCoords.y)) {
                     let figure = new Figure(figureCoords.x, figureCoords.y, width);
-                    board.addFigure(figure);
 
                     selectedFigure.relations[key] = figure;
                     figure.relations[relationFigureKey] = selectedFigure;
@@ -479,38 +608,33 @@ canvas.addEventListener("click", function (e) {
                         }
 
                     ]);
-
-                    board.redraw();
-                    board.drawRelations();
-                    board.lastSelectedFigure = figure;
-                    board.isSelectedFigure = true;
-                    figure.drawSections();
+                    board.addFigure(figure, true);
 
                 }
+
             }
+        } else if (selectedFigure.getButton(x, y)) {
+            selectedFigure.getButton(x, y).click();
         }
     }
+}
 
 });
 canvas.addEventListener("dblclick", function (e) {
     let x = e.clientX,
         y = e.clientY;
-
-    let figure = board.findFigure(x, y);
-
-    if (figure && !figure.sections.isDrawed) {
-        board.redraw();
-        board.isSelectedFigure = true;
-        figure.drawSections();
-        board.lastSelectedFigure = figure;
-        board.isSelectedFigure = true;
-    } else {
-        board.redraw();
+    if (board.isDrawed) {
+        let figure = board.findFigure(x, y);
+        if (figure && !figure.sections.isDrawed) {
+            board.selectFigure(figure);
+        } else {
+            board.redraw();
+        }
     }
-
 });
 document.addEventListener("keydown", function (e) {
-    if (e.keyCode === 46 && board.isSelectedFigure) {
+    if (e.keyCode === 46 && board.isSelectedFigure  && board.isDrawed) {
         board.deleteFigure();
     }
 });
+// });
