@@ -1,11 +1,11 @@
-// $(document).on("ready", function () {
+$(document).on("ready", function () {
 let canvas = document.getElementById("canvas"),
     ctx = canvas.getContext("2d"),
     isMouseDown = false,
     isMouseMoved = false,
     bgColor = "#a2a2a2",
     width = 40,
-    mode = "edit";
+    mouse = {};
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.display = "block";
@@ -19,6 +19,7 @@ class Board {
     relations = [];
     lastSelectedFigure;
     movedPart;
+    mode = "edit";
     isSelectedFigure = false;
     isDrawed = true;
 
@@ -28,7 +29,6 @@ class Board {
             this.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
         }
     }
-
     addFigure = (figure, select = false) => {
         this.figures.push(figure);
         if (select) {
@@ -232,6 +232,14 @@ class Board {
             return false;
 
         }
+    };
+    getFigureRelations = (figure) =>{
+        let result = [];
+        this.relations.forEach(relation =>{
+                if  (relation[0].figure == figure) result.push(relation[1].figure);
+                if  (relation[1].figure == figure) result.push(relation[0].figure);
+        });
+        return result;
     }
 
 }
@@ -356,7 +364,6 @@ class Figure {
 }
 
 class Section {
-
     constructor(parent, type) {
         this.type = type;
         this.parent = parent;
@@ -454,8 +461,6 @@ class Section {
         ctx.closePath();
         ctx.fillStyle = bgColor;
     };
-
-
 }
 
 class Button {
@@ -516,9 +521,11 @@ class Button {
 
                 $title.on(`froalaEditor.contentChanged`, function (e) {
                     parent.title = $(this).find('.fr-view').html();
+                    board.save();
                 });
                 $text.on(`froalaEditor.contentChanged`, function (e) {
                     parent.text = $(this).find('.fr-view').html();
+                    board.save();
                 });
                 // $edit.data("init", 1);
                 // $edit.data("id", board.figures.indexOf(this.parent));
@@ -547,17 +554,76 @@ class Button {
     isSelected = (x, y) => {
         return (x >= this.coords.x && x <= this.coords.x + this.width && y >= this.coords.y && y <= this.coords.y + this.width);
     }
-
 }
 
 let board = new Board();
+$("#change").click(() => {
+    board.mode = board.mode == "edit" ? "view" : "edit";
+    let popup = $("#popup");
+    switch (board.mode) {
+        case "edit":
+            popup.hide();
+            board.redraw();
+            break;
+        case "view":
+            let figure;
+            board.figures.forEach(value=>{
+                for (key in value.relations){
+                    if(value.relations[key]){
+                        figure = value;
+                        return;
 
+                    }
+                }
+            });
+            if (!board.figures.length){
+                throw "Empty board"
+            }else{
+                figure = board.figures[0];
+            }
+            popupInit(figure);
+
+            function popupInit(figure){
+                popup.html("");
+                let text = $(`<div class="text"/>`);
+                text.html(figure.text);
+
+                let relations = board.getFigureRelations(figure),
+                    buttons = $(`<div class="buttons"/>`);
+                relations.forEach((figure, i) =>{
+
+                    let button = $("<button />"),
+                        index = board.figures.indexOf(figure);
+                    button.html(+i+1 + '.' + figure.title);
+                    button.data("figure", index);
+                    button.click(function(){
+                        popupInit(board.figures[index]);
+                    });
+                    buttons.append(button);
+
+                });
+
+                popup.append(text);
+                popup.append(buttons);
+
+            }
+            board.clear();
+            console.log($("#edit").find("#closebtn"));
+            $("#edit").find("#closebtn").trigger("click");
+            popup.css("display", "flex");
+            break;
+        default:
+            throw "Invalid mode";
+
+    }
+});
 
 // board.addFigure(new Figure(400, 100, width));
 
 canvas.addEventListener("mousedown", function (e) {
     isMouseDown = true;
-
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
 });
 canvas.addEventListener("mouseup", function (e) {
     let x = e.clientX,
@@ -595,30 +661,46 @@ canvas.addEventListener("mouseup", function (e) {
     // if (board.selectedDot) board.selectedDot.buttons.draw();
 });
 canvas.addEventListener("mousemove", function (e) {
-    let x = e.clientX,
-        y = e.clientY,
+    let x = e.pageX,
+        y = e.pageY,
         figure;
     if (board.isDrawed) {
-
         if (isMouseDown) {
+            if (e.altKey){
+                let offset = {
+                    x:x-mouse.x,
+                    y:y-mouse.y
+                };
+                // ctx.translate(offset.x,offset.y);
+                board.figures.forEach(figure =>{
+                   figure.coords.x+= offset.x;
+                   figure.coords.y+= offset.y;
+                   for (let key in figure.sections){
+                       figure.sections[key].recount();
+                   }
+                });
+                mouse.x = x;
+                mouse.y = y;
+                board.redraw();
 
-            figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
+            }else {
+                figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
 
-            if (figure && board.movedPart != "section") {
-                board.lastSelectedFigure = figure;
-                figure.move(x - figure.width / 2, y - figure.width / 2);
-                board.movedPart = "figure";
-                isMouseMoved = true;
+                if (figure && board.movedPart != "section") {
+                    board.lastSelectedFigure = figure;
+                    figure.move(x - figure.width / 2, y - figure.width / 2);
+                    board.movedPart = "figure";
+                    isMouseMoved = true;
 
-            } else if (board.isSelectedFigure && board.lastSelectedFigure && e.shiftKey) {
-                // board.lastSelectedFigure.lastSelectedSection.move(x,y);
-                board.moveSelectedFigureSection(x, y);
-                board.movedPart = "section";
+                } else if (board.isSelectedFigure && board.lastSelectedFigure && e.shiftKey) {
+                    // board.lastSelectedFigure.lastSelectedSection.move(x,y);
+                    board.moveSelectedFigureSection(x, y);
+                    board.movedPart = "section";
 
-            } else {
-                board.movedPart = null;
+                } else {
+                    board.movedPart = null;
+                }
             }
-
 
         } else if (board.isSelectedFigure && board.lastSelectedFigure) {
             let section = board.lastSelectedFigure.getSection(x, y);
@@ -710,4 +792,4 @@ document.addEventListener("keydown", function (e) {
         board.deleteFigure();
     }
 });
-// });
+});

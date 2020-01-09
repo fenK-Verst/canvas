@@ -1,6 +1,6 @@
 body{
   margin: 0;
-  #edit{
+  #edit, #popup{
     position: absolute;
     top: 50%;
     left: 50%;
@@ -9,9 +9,33 @@ body{
     height: auto;
     display: none;
   }
-  .buttons{
+  #popup{
+    width: 50%;
+    height: 50%;
+    background: #d5d5d5;
+    box-sizing: border-box;
+    padding: 10px;
+
+    flex-direction: column;
+    .text{
+      background: #fff;
+      flex:1 1 auto;
+
+    }
+    .buttons{
+      display: flex;
+
+      button{
+        display:flex;
+        align-items: center;
+        flex:1 1 auto;
+      }
+    }
+  }
+  #change{
     position: absolute;
     left: 0;
     top: 0;
   }
+
 }
