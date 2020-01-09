@@ -200,8 +200,9 @@ class Board {
         return [figures, relations];
     };
     load = () => {
-        let load = JSON.parse(window.localStorage.board);
+        let load = window.localStorage.board;
         if (load) {
+            load = JSON.parse(load);
             this.figures = [];
             this.relations = [];
             this.lastSelectedFigure = null;
