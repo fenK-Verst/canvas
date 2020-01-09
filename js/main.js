@@ -16,21 +16,31 @@ ctx.fillStyle = "white";
 
 class Board {
     figures = [];
-    lastSelectedFigure;
-    isSelectedFigure = false;
-    movedPart;
     relations = [];
+    lastSelectedFigure;
+    movedPart;
+    isSelectedFigure = false;
     isDrawed = true;
+
+    constructor() {
+        this.load();
+        if (!this.figures.length) {
+            this.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
+        }
+    }
+
     addFigure = (figure, select = false) => {
         this.figures.push(figure);
         if (select) {
             this.selectFigure(figure);
         }
+        this.save();
     };
     deleteFigure = (figure = board.lastSelectedFigure) => {
         this.removeRelations(figure);
         this.figures.splice(this.figures.indexOf(figure), 1);
         this.redraw();
+        this.save();
     };
     findFigure = (x, y) => {
         let value = false;
@@ -45,8 +55,8 @@ class Board {
         this.drawRelations();
         this.lastSelectedFigure = figure;
         this.isSelectedFigure = true;
-        figure.drawSections();
-        figure.drawButtons();
+        figure.draw.sections();
+        figure.draw.buttons();
     };
     clear = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -65,7 +75,7 @@ class Board {
 
                 }
             }
-            figure.draw();
+            figure.draw.figure();
             // figure.drawRelations();
             figure.sections.isDrawed = false;
         });
@@ -99,9 +109,9 @@ class Board {
             }
 
             figure.sections[key].recount(x, y);
-            figure.drawSections();
+            figure.draw.sections();
             this.figures.forEach(figure => {
-                figure.drawSections();
+                figure.draw.sections();
             })
         }
     };
@@ -216,11 +226,10 @@ class Board {
                 this.relations.push(obj);
 
             });
-            board.clear();
-            board.redraw();
+            this.redraw();
             return true;
         } else {
-           return false;
+            return false;
 
         }
     }
@@ -231,11 +240,11 @@ class Figure {
     sections = {};
     relations = {};
     buttons = {};
-    lastSelectedSection;
-    title;
-    text;
-    width = 0;
     coords = {};
+    title = '';
+    text = '';
+    width = 0;
+    lastSelectedSection;
 
     constructor(x, y, width) {
         this.width = width;
@@ -251,7 +260,7 @@ class Figure {
             this.buttons[value] = new Button(this, value);
         });
         this.isDrawed = false;
-        this.draw();
+        this.draw.figure();
         Object.defineProperty(this.sections, "isDrawed", {
             enumerable: false,
             writable: true
@@ -259,38 +268,41 @@ class Figure {
 
     };
 
-    draw = () => {
-        ctx.beginPath();
-        ctx.fillStyle = "white";
-        ctx.strokeStyle = "black";
-        ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
+    draw = {
+        figure: () => {
+            ctx.beginPath();
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "black";
+            ctx.fillRect(this.coords.x, this.coords.y, this.width, this.width);
 
-        ctx.stroke();
-        ctx.closePath();
-        this.isDrawed = true;
-    };
-    drawSections = () => {
+            ctx.stroke();
+            ctx.closePath();
+            this.isDrawed = true;
+        },
+        sections: () => {
 
-        ctx.beginPath();
-        ctx.fillStyle = "white";
-        ctx.strokeStyle = "black";
-        for (let key in this.sections) {
-            let section = this.sections[key];
-            section.draw();
+            ctx.beginPath();
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "black";
+            for (let key in this.sections) {
+                let section = this.sections[key];
+                section.draw();
+            }
+
+            this.sections.isDrawed = true;
+
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+
+        },
+        buttons: () => {
+            for (let key in this.buttons) {
+                this.buttons[key].draw();
+            }
         }
-
-        this.sections.isDrawed = true;
-
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
-
     };
-    drawButtons = () => {
-        for (let key in this.buttons) {
-            this.buttons[key].draw();
-        }
-    };
+
     getSection = (x, y) => {
         let result = false;
         /*
@@ -341,7 +353,6 @@ class Figure {
         }
         board.redraw();
     };
-
 }
 
 class Section {
@@ -434,9 +445,9 @@ class Section {
         ctx.lineTo(this.coords[2].x, this.coords[2].y);
 
     };
-    drawColored = () => {
+    drawColored = (color = "green") => {
         ctx.beginPath();
-        ctx.fillStyle = "green";
+        ctx.fillStyle = color;
         this.draw();
         ctx.fill();
         ctx.stroke();
@@ -540,10 +551,6 @@ class Button {
 }
 
 let board = new Board();
-if (!board.load()){
-    board.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
-}
-
 
 
 // board.addFigure(new Figure(400, 100, width));
@@ -584,6 +591,7 @@ canvas.addEventListener("mouseup", function (e) {
         console.log("moved");
     }
     isMouseMoved = false;
+    board.save();
     // if (board.selectedDot) board.selectedDot.buttons.draw();
 });
 canvas.addEventListener("mousemove", function (e) {
@@ -614,7 +622,7 @@ canvas.addEventListener("mousemove", function (e) {
 
         } else if (board.isSelectedFigure && board.lastSelectedFigure) {
             let section = board.lastSelectedFigure.getSection(x, y);
-            board.lastSelectedFigure.drawSections();
+            board.lastSelectedFigure.draw.sections();
             if (section) {
                 board.lastSelectedFigure.sections[section].drawColored();
             }
