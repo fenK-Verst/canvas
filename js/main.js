@@ -161,6 +161,69 @@ class Board {
 
         return result;
     };
+    save = () => {
+        let figures = [], relations = [];
+        this.figures.forEach((figure, i) => {
+            let obj = {
+                coords: figure.coords,
+                relations: figure.relations,
+                title: figure.title,
+                text: figure.text,
+            };
+            figures[i] = obj;
+
+        });
+        this.relations.forEach((relation, i) => {
+            let obj = [
+                {
+                    figure: this.figures.indexOf(relation[0].figure),
+                    section: relation[0].section
+                },
+                {
+                    figure: this.figures.indexOf(relation[1].figure),
+                    section: relation[1].section
+                }
+            ];
+            relations.push(obj);
+        });
+        window.localStorage.board = JSON.stringify({figures, relations});
+        return [figures, relations];
+    };
+    load = () => {
+        let load = JSON.parse(window.localStorage.board);
+        if (load) {
+            this.figures = [];
+            this.relations = [];
+            this.lastSelectedFigure = null;
+            load.figures.forEach(figure => {
+                let newFigure = new Figure(figure.coords.x, figure.coords.y, width);
+                newFigure.text = figure.text;
+                newFigure.title = figure.title;
+                newFigure.relations = figure.relations;
+                this.figures.push(newFigure);
+            });
+            load.relations.forEach(relation => {
+                let obj = [
+                    {
+                        figure: this.figures[relation[0].figure],
+                        section: relation[0].section
+                    },
+                    {
+                        figure: this.figures[relation[1].figure],
+                        section: relation[1].section
+                    }
+                ];
+                this.relations.push(obj);
+
+            });
+            board.clear();
+            board.redraw();
+            return true;
+        } else {
+           return false;
+
+        }
+    }
 
 }
 
@@ -440,10 +503,10 @@ class Button {
                 $title.froalaEditor();
                 $text.froalaEditor();
 
-                $title.on(`froalaEditor.contentChanged`, function(e){
-                   parent.title = $(this).find('.fr-view').html();
+                $title.on(`froalaEditor.contentChanged`, function (e) {
+                    parent.title = $(this).find('.fr-view').html();
                 });
-                $text.on(`froalaEditor.contentChanged`, function(e){
+                $text.on(`froalaEditor.contentChanged`, function (e) {
                     parent.text = $(this).find('.fr-view').html();
                 });
                 // $edit.data("init", 1);
@@ -455,7 +518,6 @@ class Button {
                     $edit.hide();
                     board.redraw();
                 });
-
 
 
                 // }
@@ -478,7 +540,10 @@ class Button {
 }
 
 let board = new Board();
-board.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
+if (!board.load()){
+    board.addFigure(new Figure(canvas.width / 2 - width, canvas.height / 2 - width, width));
+}
+
 
 
 // board.addFigure(new Figure(400, 100, width));
@@ -506,8 +571,8 @@ canvas.addEventListener("mouseup", function (e) {
                         section: board.lastSelectedFigure.lastSelectedSection
                     }
                 ];
-                board.lastSelectedFigure.relations[board.lastSelectedFigure.lastSelectedSection] = figure;
-                figure.relations[figure.getSection(x, y)] = board.lastSelectedFigure;
+                board.lastSelectedFigure.relations[board.lastSelectedFigure.lastSelectedSection] = true;//figure;
+                figure.relations[figure.getSection(x, y)] = true;//board.lastSelectedFigure;
                 board.relations.push(relation);
             }
         });
@@ -560,64 +625,64 @@ canvas.addEventListener("click", function (e) {
     let x = e.clientX,
         y = e.clientY;
     if (board.isDrawed) {
-    if (board.isSelectedFigure && board.lastSelectedFigure) {
-        let selectedFigure = board.lastSelectedFigure;
-        if (selectedFigure.getSection(x, y)) {
-            let relationFigureKey,
-                key = selectedFigure.getSection(x, y),
-                figureCoords = {
-                    x, y
-                };
-            if (selectedFigure.relations[key] == null) {
-                switch (key) {
-                    case "top":
-                        figureCoords.x = selectedFigure.coords.x;
-                        figureCoords.y = selectedFigure.coords.y - width * 3;
-                        relationFigureKey = "bot";
-                        break;
-                    case "left":
-                        figureCoords.x = selectedFigure.coords.x - width * 3;
-                        figureCoords.y = selectedFigure.coords.y;
-                        relationFigureKey = "right";
-                        break;
-                    case "right":
-                        figureCoords.x = selectedFigure.coords.x + width * 3;
-                        figureCoords.y = selectedFigure.coords.y;
-                        relationFigureKey = "left";
-                        break;
-                    case "bot":
-                        figureCoords.x = selectedFigure.coords.x;
-                        figureCoords.y = selectedFigure.coords.y + width * 3;
-                        relationFigureKey = "top";
-                        break;
+        if (board.isSelectedFigure && board.lastSelectedFigure) {
+            let selectedFigure = board.lastSelectedFigure;
+            if (selectedFigure.getSection(x, y)) {
+                let relationFigureKey,
+                    key = selectedFigure.getSection(x, y),
+                    figureCoords = {
+                        x, y
+                    };
+                if (selectedFigure.relations[key] == null) {
+                    switch (key) {
+                        case "top":
+                            figureCoords.x = selectedFigure.coords.x;
+                            figureCoords.y = selectedFigure.coords.y - width * 3;
+                            relationFigureKey = "bot";
+                            break;
+                        case "left":
+                            figureCoords.x = selectedFigure.coords.x - width * 3;
+                            figureCoords.y = selectedFigure.coords.y;
+                            relationFigureKey = "right";
+                            break;
+                        case "right":
+                            figureCoords.x = selectedFigure.coords.x + width * 3;
+                            figureCoords.y = selectedFigure.coords.y;
+                            relationFigureKey = "left";
+                            break;
+                        case "bot":
+                            figureCoords.x = selectedFigure.coords.x;
+                            figureCoords.y = selectedFigure.coords.y + width * 3;
+                            relationFigureKey = "top";
+                            break;
+
+                    }
+                    if (board.isCanDraw(figureCoords.x, figureCoords.y)) {
+                        let figure = new Figure(figureCoords.x, figureCoords.y, width);
+
+                        selectedFigure.relations[key] = true;//figure;
+                        figure.relations[relationFigureKey] = true;//selectedFigure;
+                        board.relations.push([
+                            {
+                                figure: figure,
+                                section: relationFigureKey
+                            },
+                            {
+                                figure: selectedFigure,
+                                section: key
+                            }
+
+                        ]);
+                        board.addFigure(figure, true);
+
+                    }
 
                 }
-                if (board.isCanDraw(figureCoords.x, figureCoords.y)) {
-                    let figure = new Figure(figureCoords.x, figureCoords.y, width);
-
-                    selectedFigure.relations[key] = figure;
-                    figure.relations[relationFigureKey] = selectedFigure;
-                    board.relations.push([
-                        {
-                            figure: figure,
-                            section: relationFigureKey
-                        },
-                        {
-                            figure: selectedFigure,
-                            section: key
-                        }
-
-                    ]);
-                    board.addFigure(figure, true);
-
-                }
-
+            } else if (selectedFigure.getButton(x, y)) {
+                selectedFigure.getButton(x, y).click();
             }
-        } else if (selectedFigure.getButton(x, y)) {
-            selectedFigure.getButton(x, y).click();
         }
     }
-}
 
 });
 canvas.addEventListener("dblclick", function (e) {
@@ -633,7 +698,7 @@ canvas.addEventListener("dblclick", function (e) {
     }
 });
 document.addEventListener("keydown", function (e) {
-    if (e.keyCode === 46 && board.isSelectedFigure  && board.isDrawed) {
+    if (e.keyCode === 46 && board.isSelectedFigure && board.isDrawed) {
         board.deleteFigure();
     }
 });
