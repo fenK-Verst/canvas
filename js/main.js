@@ -666,24 +666,7 @@ canvas.addEventListener("mousemove", function (e) {
         figure;
     if (board.isDrawed) {
         if (isMouseDown) {
-            if (e.altKey){
-                let offset = {
-                    x:x-mouse.x,
-                    y:y-mouse.y
-                };
-                // ctx.translate(offset.x,offset.y);
-                board.figures.forEach(figure =>{
-                   figure.coords.x+= offset.x;
-                   figure.coords.y+= offset.y;
-                   for (let key in figure.sections){
-                       figure.sections[key].recount();
-                   }
-                });
-                mouse.x = x;
-                mouse.y = y;
-                board.redraw();
 
-            }else {
                 figure = isMouseMoved ? board.lastSelectedFigure : board.findFigure(x, y);
 
                 if (figure && board.movedPart != "section") {
@@ -697,10 +680,28 @@ canvas.addEventListener("mousemove", function (e) {
                     board.moveSelectedFigureSection(x, y);
                     board.movedPart = "section";
 
-                } else {
+                } else
+                if (e.shiftKey){
+                    let offset = {
+                        x:x-mouse.x,
+                        y:y-mouse.y
+                    };
+                    // ctx.translate(offset.x,offset.y);
+                    board.figures.forEach(figure =>{
+                        figure.coords.x+= offset.x;
+                        figure.coords.y+= offset.y;
+                        for (let key in figure.sections){
+                            figure.sections[key].recount();
+                        }
+                    });
+                    mouse.x = x;
+                    mouse.y = y;
+                    board.redraw();
+
+                }else {
                     board.movedPart = null;
                 }
-            }
+
 
         } else if (board.isSelectedFigure && board.lastSelectedFigure) {
             let section = board.lastSelectedFigure.getSection(x, y);
