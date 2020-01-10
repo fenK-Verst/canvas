@@ -1,0 +1,39 @@
+body {
+  margin: 0;
+}
+body #edit, body #popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50%;
+  height: auto;
+  display: none;
+}
+body #popup {
+  width: 50%;
+  height: 50%;
+  background: #d5d5d5;
+  box-sizing: border-box;
+  padding: 10px;
+  flex-direction: column;
+}
+body #popup .text {
+  background: #fff;
+  flex: 1 1 auto;
+}
+body #popup .buttons {
+  display: flex;
+}
+body #popup .buttons button {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+}
+body #change {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/*# sourceMappingURL=styles.css.map */
